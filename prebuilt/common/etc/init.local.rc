@@ -1,7 +1,5 @@
 # Extras
 
-import /init.superuser.rc
-
 on init
     export TERMINFO /system/etc/terminfo
     export TERM linux
@@ -13,23 +11,19 @@ on boot
     start sysinit
     chown system system /sys/block/mmcblk0/queue/scheduler
     chmod 0664 /sys/block/mmcblk0/queue/scheduler
-    restorecon /sys/block/mmcblk0/queue/scheduler
+
+# allow system to modify ksm control files
+    chown root system /sys/kernel/mm/ksm/pages_to_scan
+    chmod 0664 /sys/kernel/mm/ksm/pages_to_scan
+    chown root system /sys/kernel/mm/ksm/sleep_millisecs
+    chmod 0664 /sys/kernel/mm/ksm/sleep_millisecs
+    chown root system /sys/kernel/mm/ksm/run
+    chmod 0664 /sys/kernel/mm/ksm/run
+    write /sys/kernel/mm/ksm/sleep_millisecs 1500
+    write /sys/kernel/mm/ksm/pages_to_scan 256
 
     chown system system /dev/cpuctl/apps/cpu.notify_on_migrate
-    chmod 0664 /dev/cpuctl/apps/cpu.notify_on_migrate
-
-    chown system system /dev/cpuctl/cpu.notify_on_migrate
-    chmod 0664 /dev/cpuctl/cpu.notify_on_migrate
-
-    # Define TCP delayed ack settings for WiFi & LTE
-    chown system system /sys/kernel/ipv4/tcp_delack_seg
-    chown system system /sys/kernel/ipv4/tcp_use_userconfig
-    setprop net.tcp.delack.default     1
-    setprop net.tcp.delack.wifi        20
-    setprop net.tcp.delack.lte         8
-    setprop net.tcp.usercfg.default    0
-    setprop net.tcp.usercfg.wifi       1
-    setprop net.tcp.usercfg.lte        1
+    chmod 0644 /dev/cpuctl/apps/cpu.notify_on_migrate
 
 # adb over network
 on property:service.adb.tcp.port=5555
@@ -38,6 +32,15 @@ on property:service.adb.tcp.port=5555
 on property:service.adb.tcp.port=-1
     stop adbd
     start adbd
+
+# Disable ril services if noril prop is set
+on property:ro.radio.noril=1
+    stop ril-daemon
+    stop qmuxd
+    stop netmgrd
+
+on property:persist.radio.noril=1
+    setprop ro.radio.noril 1
 
 # sysinit (/system/etc/init.d)
 service sysinit /system/bin/sysinit
